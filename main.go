@@ -1,22 +1,25 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/MicroSOA-09/gateway-service/handler"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )
 
 func main() {
 	// Load .env file
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file:", err)
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("Warning: Could not load .env file, using defaults:", err)
 	}
-
+	
 	config := &handler.Config{
 		AuthServiceURL: os.Getenv("AUTH_SERVICE_URL"),
 		BlogServiceURL: os.Getenv("BLOG_SERVICE_URL"),
@@ -52,6 +55,14 @@ func main() {
 	aspRouter.HandleFunc("/{path:.*}", gateway.ProxyHandler(gateway.AspProxy, config.AspServiceURL))
 	// Apply auth middleware to all routes
 
+	// Definiši CORS opcije
+	cors := handlers.CORS(
+		handlers.AllowedOrigins([]string{"http://localhost:4200"}), // Specifično za Angular frontend
+		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+		handlers.AllowedHeaders([]string{"Content-Type", "Authorization"}),
+		handlers.AllowCredentials(),
+	)
+
 	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -60,7 +71,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:         ":" + port,
-		Handler:      router,
+		Handler:      cors(router),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  15 * time.Second,

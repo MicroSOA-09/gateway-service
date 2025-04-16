@@ -88,7 +88,6 @@ func (g *Gateway) AuthMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "invalid Authorization format", http.StatusUnauthorized)
 			return
 		}
-
 		userID, role, username, err := g.validateJWT(parts[1])
 		if err != nil {
 			g.Logger.Printf("JWT validation failed: %v", err)
@@ -115,7 +114,9 @@ func (g *Gateway) ProxyHandler(proxy *httputil.ReverseProxy, targetURL string) h
 
 // validateJWT sends a request to AuthService to validate the JWT
 func (g *Gateway) validateJWT(token string) (string, string, string, error) {
-	req, err := http.NewRequest("POST", g.Config.AuthServiceURL+"/api/auth/jwt/", nil)
+	g.Logger.Printf("Authorizing... Forwarding requet")
+
+	req, err := http.NewRequest("POST", g.Config.AuthServiceURL+"/api/auth/jwt", nil)
 	if err != nil {
 		return "", "", "", fmt.Errorf("failed to create validation request: %w", err)
 	}
